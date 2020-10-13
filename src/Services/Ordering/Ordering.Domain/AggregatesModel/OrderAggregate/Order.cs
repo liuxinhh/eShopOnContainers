@@ -10,12 +10,12 @@ namespace Microsoft.eShopOnContainers.Services.Ordering.Domain.AggregatesModel.O
     public class Order
         : Entity, IAggregateRoot
     {
-        // DDD Patterns comment
-        // Using private fields, allowed since EF Core 1.1, is a much better encapsulation
-        // aligned with DDD Aggregates and Domain Entities (Instead of properties and property collections)
+        // DDD 模式 建议
+        // 使用私有字段是一种更好的封装
+        // 与DDD 聚合与域实体保持一致，（而不是只会用属性或者属性集合）
         private DateTime _orderDate;
 
-        // Address is a Value Object pattern example persisted as EF Core 2.0 owned entity
+        // Address 是一个值对象的模式示例，持久化为EF Core 2.0拥有的实体
         public Address Address { get; private set; }
 
         public int? GetBuyerId => _buyerId;
@@ -27,14 +27,13 @@ namespace Microsoft.eShopOnContainers.Services.Ordering.Domain.AggregatesModel.O
         private string _description;
 
 
-
-        // Draft orders have this set to true. Currently we don't check anywhere the draft status of an Order, but we could do it if needed
+        // 模拟的订单将此设置为true,目前我们不检查任何地方的草稿似的状态的订单，但如果需要，我们可以这么做
         private bool _isDraft;
 
-        // DDD Patterns comment
-        // Using a private collection field, better for DDD Aggregate's encapsulation
-        // so OrderItems cannot be added from "outside the AggregateRoot" directly to the collection,
-        // but only through the method OrderAggrergateRoot.AddOrderItem() which includes behaviour.
+        // DDD 模式 建议
+        // 使用私有集合字段，更适合DDD聚合的封装
+        // 因此 OrderItems不能从 "AggregateRoot外部" 直接添加到集合中
+        // 只能通过包含领域行为的方法 OrderAggrergateRoot.AddOrderItem() 开添加进来.
         private readonly List<OrderItem> _orderItems;
         public IReadOnlyCollection<OrderItem> OrderItems => _orderItems;
 
@@ -53,8 +52,10 @@ namespace Microsoft.eShopOnContainers.Services.Ordering.Domain.AggregatesModel.O
             _isDraft = false;
         }
 
-        public Order(string userId, string userName, Address address, int cardTypeId, string cardNumber, string cardSecurityNumber,
-                string cardHolderName, DateTime cardExpiration, int? buyerId = null, int? paymentMethodId = null) : this()
+        // 添加订单的方法，因为属性是私有的，只能通过构造函数添加
+        public Order(string userId, string userName, Address address, int cardTypeId, string cardNumber,
+            string cardSecurityNumber,
+            string cardHolderName, DateTime cardExpiration, int? buyerId = null, int? paymentMethodId = null) : this()
         {
             _buyerId = buyerId;
             _paymentMethodId = paymentMethodId;
@@ -62,24 +63,25 @@ namespace Microsoft.eShopOnContainers.Services.Ordering.Domain.AggregatesModel.O
             _orderDate = DateTime.UtcNow;
             Address = address;
 
-            // Add the OrderStarterDomainEvent to the domain events collection 
-            // to be raised/dispatched when comitting changes into the Database [ After DbContext.SaveChanges() ]
+            // 将OrderStarterDomainEvent添加到领域事件集合
+            // 在更新到数据库 [ 执行 DbContext.SaveChanges() ] 以后，触发/调度
             AddOrderStartedDomainEvent(userId, userName, cardTypeId, cardNumber,
-                                       cardSecurityNumber, cardHolderName, cardExpiration);
+                cardSecurityNumber, cardHolderName, cardExpiration);
         }
 
-        // DDD Patterns comment
-        // This Order AggregateRoot's method "AddOrderitem()" should be the only way to add Items to the Order,
-        // so any behavior (discounts, etc.) and validations are controlled by the AggregateRoot 
-        // in order to maintain consistency between the whole Aggregate. 
-        public void AddOrderItem(int productId, string productName, decimal unitPrice, decimal discount, string pictureUrl, int units = 1)
+        // DDD 模式 建议
+        // 这哥 Order AggregateRoot 的方法 "AddOrderitem()" 应该是向订单添加的唯一方法,
+        // 因此，任何行为（折扣等）和验证行为都由聚合根 AggregateRoot 控制
+        // 以保持整个聚合之间的一致性
+        public void AddOrderItem(int productId, string productName, decimal unitPrice, decimal discount,
+            string pictureUrl, int units = 1)
         {
-            var existingOrderForProduct = _orderItems.Where(o => o.ProductId == productId)
-                .SingleOrDefault();
+            var existingOrderForProduct = _orderItems
+                .SingleOrDefault(o => o.ProductId == productId);
 
             if (existingOrderForProduct != null)
             {
-                //if previous line exist modify it with higher discount  and units..
+                //如果前面的行存在，用更高的折扣和单位修改它。
 
                 if (discount > existingOrderForProduct.GetCurrentDiscount())
                 {
@@ -90,23 +92,26 @@ namespace Microsoft.eShopOnContainers.Services.Ordering.Domain.AggregatesModel.O
             }
             else
             {
-                //add validated new order item
+                //添加经过验证的新订单项
 
                 var orderItem = new OrderItem(productId, productName, unitPrice, discount, pictureUrl, units);
                 _orderItems.Add(orderItem);
             }
         }
 
+        // 设置支付id
         public void SetPaymentId(int id)
         {
             _paymentMethodId = id;
         }
 
+        // 设置卖家id
         public void SetBuyerId(int id)
         {
             _buyerId = id;
         }
 
+        // 设置订单状态为：等待验证，MediaR总线
         public void SetAwaitingValidationStatus()
         {
             if (_orderStatusId == OrderStatus.Submitted.Id)
@@ -115,7 +120,8 @@ namespace Microsoft.eShopOnContainers.Services.Ordering.Domain.AggregatesModel.O
                 _orderStatusId = OrderStatus.AwaitingValidation.Id;
             }
         }
-
+        
+        // 设置订单状态为：库存确认
         public void SetStockConfirmedStatus()
         {
             if (_orderStatusId == OrderStatus.AwaitingValidation.Id)
@@ -127,6 +133,7 @@ namespace Microsoft.eShopOnContainers.Services.Ordering.Domain.AggregatesModel.O
             }
         }
 
+        // 设置订单状态为：已支付
         public void SetPaidStatus()
         {
             if (_orderStatusId == OrderStatus.StockConfirmed.Id)
@@ -134,10 +141,12 @@ namespace Microsoft.eShopOnContainers.Services.Ordering.Domain.AggregatesModel.O
                 AddDomainEvent(new OrderStatusChangedToPaidDomainEvent(Id, OrderItems));
 
                 _orderStatusId = OrderStatus.Paid.Id;
-                _description = "The payment was performed at a simulated \"American Bank checking bank account ending on XX35071\"";
+                _description =
+                    "The payment was performed at a simulated \"American Bank checking bank account ending on XX35071\"";
             }
         }
 
+        //  设置订单状态为：已发货
         public void SetShippedStatus()
         {
             if (_orderStatusId != OrderStatus.Paid.Id)
@@ -150,6 +159,7 @@ namespace Microsoft.eShopOnContainers.Services.Ordering.Domain.AggregatesModel.O
             AddDomainEvent(new OrderShippedDomainEvent(this));
         }
 
+        //  设置订单状态为：已取消
         public void SetCancelledStatus()
         {
             if (_orderStatusId == OrderStatus.Paid.Id ||
@@ -163,6 +173,7 @@ namespace Microsoft.eShopOnContainers.Services.Ordering.Domain.AggregatesModel.O
             AddDomainEvent(new OrderCancelledDomainEvent(this));
         }
 
+        //  设置订单状态为：当库存被拒绝是设置取消
         public void SetCancelledStatusWhenStockIsRejected(IEnumerable<int> orderStockRejectedItems)
         {
             if (_orderStatusId == OrderStatus.AwaitingValidation.Id)
@@ -178,25 +189,28 @@ namespace Microsoft.eShopOnContainers.Services.Ordering.Domain.AggregatesModel.O
             }
         }
 
+        // 添加订单开始领域命令，SaveChange()后触发
         private void AddOrderStartedDomainEvent(string userId, string userName, int cardTypeId, string cardNumber,
-                string cardSecurityNumber, string cardHolderName, DateTime cardExpiration)
+            string cardSecurityNumber, string cardHolderName, DateTime cardExpiration)
         {
             var orderStartedDomainEvent = new OrderStartedDomainEvent(this, userId, userName, cardTypeId,
-                                                                      cardNumber, cardSecurityNumber,
-                                                                      cardHolderName, cardExpiration);
+                cardNumber, cardSecurityNumber,
+                cardHolderName, cardExpiration);
 
             this.AddDomainEvent(orderStartedDomainEvent);
         }
 
+        // 状态修改异常
         private void StatusChangeException(OrderStatus orderStatusToChange)
         {
-            throw new OrderingDomainException($"Is not possible to change the order status from {OrderStatus.Name} to {orderStatusToChange.Name}.");
+            throw new OrderingDomainException(
+                $"Is not possible to change the order status from {OrderStatus.Name} to {orderStatusToChange.Name}.");
         }
 
+        // 获取订单总数
         public decimal GetTotal()
         {
             return _orderItems.Sum(o => o.GetUnits() * o.GetUnitPrice());
         }
     }
 }
-

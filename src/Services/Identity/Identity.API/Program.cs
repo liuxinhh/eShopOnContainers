@@ -30,7 +30,11 @@ namespace Microsoft.eShopOnContainers.Services.Identity.API
                 var host = BuildWebHost(configuration, args);
 
                 Log.Information("Applying migrations ({ApplicationContext})...", AppName);
-                host.MigrateDbContext<PersistedGrantDbContext>((_, __) => { })
+                // 上下文迁移
+                host
+                    // 持久化授权数据
+                    .MigrateDbContext<PersistedGrantDbContext>((_, __) => { })
+                    // identity 用户数据
                     .MigrateDbContext<ApplicationDbContext>((context, services) =>
                     {
                         var env = services.GetService<IWebHostEnvironment>();
@@ -41,6 +45,7 @@ namespace Microsoft.eShopOnContainers.Services.Identity.API
                             .SeedAsync(context, env, logger, settings)
                             .Wait();
                     })
+                    // 配置数据
                     .MigrateDbContext<ConfigurationDbContext>((context, services) =>
                     {
                         new ConfigurationDbContextSeed()
@@ -73,6 +78,12 @@ namespace Microsoft.eShopOnContainers.Services.Identity.API
                 .UseSerilog()
                 .Build();
 
+        /// <summary>
+        /// Serilog 日志配置
+        /// 写入到了 seq
+        /// </summary>
+        /// <param name="configuration"></param>
+        /// <returns></returns>
         private static Serilog.ILogger CreateSerilogLogger(IConfiguration configuration)
         {
             var seqServerUrl = configuration["Serilog:SeqServerUrl"];
@@ -88,6 +99,10 @@ namespace Microsoft.eShopOnContainers.Services.Identity.API
                 .CreateLogger();
         }
 
+        /// <summary>
+        /// 自定义配置，并热更新（reloadOnChange）
+        /// </summary>
+        /// <returns></returns>
         private static IConfiguration GetConfiguration()
         {
             var builder = new ConfigurationBuilder()

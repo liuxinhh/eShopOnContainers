@@ -3,8 +3,8 @@ using System.Threading.Tasks;
 
 namespace Microsoft.eShopOnContainers.Services.Ordering.Domain.AggregatesModel.OrderAggregate
 {
-    //This is just the RepositoryContracts or Interface defined at the Domain Layer
-    //as requisite for the Order Aggregate
+    // 这仅仅是在领域层RepositoryContracts或接口定义
+    // 作为订单聚合的必要条件
 
     public interface IOrderRepository : IRepository<Order>
     {

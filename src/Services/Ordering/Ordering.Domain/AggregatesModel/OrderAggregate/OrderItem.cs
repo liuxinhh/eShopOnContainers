@@ -7,9 +7,9 @@ namespace Microsoft.eShopOnContainers.Services.Ordering.Domain.AggregatesModel.O
     public class OrderItem
         : Entity
     {
-        // DDD Patterns comment
-        // Using private fields, allowed since EF Core 1.1, is a much better encapsulation
-        // aligned with DDD Aggregates and Domain Entities (Instead of properties and property collections)
+        // DDD 模式 建议
+        // 使用私有字段是一种更好的封装
+        // 与DDD 聚合与域实体保持一致，（而不是只会用属性或者属性集合）
         private string  _productName;
         private string  _pictureUrl;
         private decimal _unitPrice;
@@ -19,8 +19,9 @@ namespace Microsoft.eShopOnContainers.Services.Ordering.Domain.AggregatesModel.O
         public int ProductId { get; private set; }
 
         protected OrderItem() { }
-
-        public OrderItem(int productId, string productName, decimal unitPrice, decimal discount, string PictureUrl, int units = 1)
+        
+        // 添加订单项的方法，因为属性是私有的，只能通过构造函数添加
+        public OrderItem(int productId, string productName, decimal unitPrice, decimal discount, string pictureUrl, int units = 1)
         {
             if (units <= 0)
             {
@@ -38,11 +39,11 @@ namespace Microsoft.eShopOnContainers.Services.Ordering.Domain.AggregatesModel.O
             _unitPrice = unitPrice;
             _discount = discount;
             _units = units;
-            _pictureUrl = PictureUrl;
+            _pictureUrl = pictureUrl;
         }
 
         public string GetPictureUri() => _pictureUrl;
-
+        
         public decimal GetCurrentDiscount()
         {
             return _discount;

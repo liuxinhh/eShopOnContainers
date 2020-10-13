@@ -15,7 +15,9 @@ using System.Threading.Tasks;
 namespace Microsoft.eShopOnContainers.Services.Identity.API.Data
 {
 
-
+    /// <summary>
+    /// 生成 identity 用户数据
+    /// </summary>
     public class ApplicationDbContextSeed
     {
         private readonly IPasswordHasher<ApplicationUser> _passwordHasher = new PasswordHasher<ApplicationUser>();
@@ -33,6 +35,7 @@ namespace Microsoft.eShopOnContainers.Services.Identity.API.Data
 
                 if (!context.Users.Any())
                 {
+                    // 如果文件没有数据，则使用默认数据
                     context.Users.AddRange(useCustomizationData
                         ? GetUsersFromFile(contentRootPath, logger)
                         : GetDefaultUser());
@@ -58,6 +61,12 @@ namespace Microsoft.eShopOnContainers.Services.Identity.API.Data
             }
         }
 
+        /// <summary>
+        /// 文件数据
+        /// </summary>
+        /// <param name="contentRootPath"></param>
+        /// <param name="logger"></param>
+        /// <returns></returns>
         private IEnumerable<ApplicationUser> GetUsersFromFile(string contentRootPath, ILogger logger)
         {
             string csvFileUsers = Path.Combine(contentRootPath, "Setup", "Users.csv");
@@ -96,6 +105,12 @@ namespace Microsoft.eShopOnContainers.Services.Identity.API.Data
             return users;
         }
 
+        /// <summary>
+        /// 生成应用用户数据对象实例
+        /// </summary>
+        /// <param name="column"></param>
+        /// <param name="headers"></param>
+        /// <returns></returns>
         private ApplicationUser CreateApplicationUser(string[] column, string[] headers)
         {
             if (column.Count() != headers.Count())
@@ -138,6 +153,10 @@ namespace Microsoft.eShopOnContainers.Services.Identity.API.Data
             return user;
         }
 
+        /// <summary>
+        /// 默认数据
+        /// </summary>
+        /// <returns></returns>
         private IEnumerable<ApplicationUser> GetDefaultUser()
         {
             var user =
@@ -192,6 +211,13 @@ namespace Microsoft.eShopOnContainers.Services.Identity.API.Data
             return csvheaders;
         }
 
+        /// <summary>
+        /// 从zip压缩包里获取预加载图片
+        /// 比如logo
+        /// </summary>
+        /// <param name="contentRootPath"></param>
+        /// <param name="webroot"></param>
+        /// <param name="logger"></param>
         static void GetPreconfiguredImages(string contentRootPath, string webroot, ILogger logger)
         {
             try

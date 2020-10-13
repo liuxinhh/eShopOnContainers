@@ -17,8 +17,16 @@ namespace Microsoft.AspNetCore.Hosting
             return orchestratorType?.ToUpper() == "K8S";
         }
 
+        /// <summary>
+        /// 迁移 db 上下文 
+        /// </summary>
+        /// <typeparam name="TContext"></typeparam>
+        /// <param name="webHost"></param>
+        /// <param name="seeder"></param>
+        /// <returns></returns>
         public static IWebHost MigrateDbContext<TContext>(this IWebHost webHost, Action<TContext, IServiceProvider> seeder) where TContext : DbContext
         {
+            // k8s 单独处理
             var underK8s = webHost.IsInKubernetes();
 
             using (var scope = webHost.Services.CreateScope())
@@ -69,6 +77,13 @@ namespace Microsoft.AspNetCore.Hosting
             return webHost;
         }
 
+        /// <summary>
+        /// 迁移
+        /// </summary>
+        /// <typeparam name="TContext"></typeparam>
+        /// <param name="seeder"></param>
+        /// <param name="context"></param>
+        /// <param name="services"></param>
         private static void InvokeSeeder<TContext>(Action<TContext, IServiceProvider> seeder, TContext context, IServiceProvider services)
             where TContext : DbContext
         {

@@ -11,6 +11,9 @@ using System.Threading.Tasks;
 
 namespace Microsoft.eShopOnContainers.Services.Identity.API.Data
 {
+    /// <summary>
+    /// 生成 配置数据 种子数据
+    /// </summary>
     public class ConfigurationDbContextSeed
     {
         public async Task SeedAsync(ConfigurationDbContext context,IConfiguration configuration)
