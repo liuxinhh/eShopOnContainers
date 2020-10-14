@@ -40,22 +40,27 @@ namespace Microsoft.eShopOnContainers.Services.Locations.API
 
         public virtual IServiceProvider ConfigureServices(IServiceCollection services)
         {
+            // 注册App监控
             RegisterAppInsights(services);
 
+            // 健康检查服务
             services.AddCustomHealthCheck(Configuration);
 
             services.AddControllers(options =>
                 {
                     options.Filters.Add(typeof(HttpGlobalExceptionFilter));
                 })
-                // Added for functional tests
+                // 为功能测试添加
                 .AddApplicationPart(typeof(LocationsController).Assembly)
                 .AddNewtonsoftJson();
 
+            // 添加 JWT 验证服务
             ConfigureAuthService(services);
 
+            // 获取配置信息：对象方法
             services.Configure<LocationSettings>(Configuration);
 
+            // 连接消息中间件
             if (Configuration.GetValue<bool>("AzureServiceBusEnabled"))
             {
                 services.AddSingleton<IServiceBusPersisterConnection>(sp =>
@@ -70,6 +75,8 @@ namespace Microsoft.eShopOnContainers.Services.Locations.API
             }
             else
             {
+                // EventBusRabbitMQ 项目
+                // 注册rabbutmq 服务
                 services.AddSingleton<IRabbitMQPersistentConnection>(sp =>
                 {
                     var logger = sp.GetRequiredService<ILogger<DefaultRabbitMQPersistentConnection>>();
@@ -100,12 +107,13 @@ namespace Microsoft.eShopOnContainers.Services.Locations.API
                 });
             }
 
+            // 注册 event bus 领域事件服务
             RegisterEventBus(services);
 
-            // Add framework services.
+            // 添加 Swagger 接口文档服务
             services.AddSwaggerGen(options =>
             {
-                options.DescribeAllEnumsAsStrings();
+                //options.DescribeAllEnumsAsStrings();
                 options.SwaggerDoc("v1", new OpenApiInfo
                 {
                     Title = "eShopOnContainers - Location HTTP API",
@@ -113,6 +121,7 @@ namespace Microsoft.eShopOnContainers.Services.Locations.API
                     Description = "The Location Microservice HTTP API. This is a Data-Driven/CRUD microservice sample",
                 });
 
+                var s = Configuration.GetValue<string>("IdentityUrl");
                 options.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme
                 {
                     Type = SecuritySchemeType.OAuth2,
@@ -120,8 +129,8 @@ namespace Microsoft.eShopOnContainers.Services.Locations.API
                     {
                         Implicit = new OpenApiOAuthFlow()
                         {
-                            AuthorizationUrl = new Uri($"{Configuration.GetValue<string>("IdentityUrlExternal")}/connect/authorize"),
-                            TokenUrl = new Uri($"{Configuration.GetValue<string>("IdentityUrlExternal")}/connect/token"),
+                            AuthorizationUrl = new Uri($"{Configuration.GetValue<string>("IdentityUrl")}/connect/authorize"),
+                            TokenUrl = new Uri($"{Configuration.GetValue<string>("IdentityUrl")}/connect/token"),
                             Scopes = new Dictionary<string, string>()
                             {
                                 { "locations", "Locations API" }
@@ -129,11 +138,12 @@ namespace Microsoft.eShopOnContainers.Services.Locations.API
                         }
                     }
                 });
-
+                // 接口文档权限验证
                 options.OperationFilter<AuthorizeCheckOperationFilter>();
 
             });
 
+            // 请求跨域
             services.AddCors(options =>
             {
                 options.AddPolicy("CorsPolicy",
@@ -149,10 +159,9 @@ namespace Microsoft.eShopOnContainers.Services.Locations.API
             services.AddTransient<ILocationsService, LocationsService>();
             services.AddTransient<ILocationsRepository, LocationsRepository>();
 
-            //configure autofac
+            // Autofac容器化
             var container = new ContainerBuilder();
             container.Populate(services);
-
             return new AutofacServiceProvider(container.Build());
         }
 
@@ -162,14 +171,20 @@ namespace Microsoft.eShopOnContainers.Services.Locations.API
             //loggerFactory.AddAzureWebAppDiagnostics();
             //loggerFactory.AddApplicationInsights(app.ApplicationServices, LogLevel.Trace);
 
+            // 配置基础路径
             var pathBase = Configuration["PATH_BASE"];
             if (!string.IsNullOrEmpty(pathBase))
             {
                 app.UsePathBase(pathBase);
             }
 
+            // 路由
             app.UseRouting();
+            
+            // 跨域
             app.UseCors("CorsPolicy");
+
+            // 授权认证中间件
             ConfigureAuth(app);
 
             app.UseEndpoints(endpoints =>
@@ -199,12 +214,20 @@ namespace Microsoft.eShopOnContainers.Services.Locations.API
                 .Wait();
         }
 
+        /// <summary>
+        /// 注册App监控
+        /// </summary>
+        /// <param name="services"></param>
         private void RegisterAppInsights(IServiceCollection services)
         {
             services.AddApplicationInsightsTelemetry(Configuration);
             services.AddApplicationInsightsKubernetesEnricher();
         }
 
+        /// <summary>
+        /// 添加 JWT 验证服务
+        /// </summary>
+        /// <param name="services"></param>
         private void ConfigureAuthService(IServiceCollection services)
         {
             // prevent from mapping "sub" claim to nameidentifier.
@@ -223,6 +246,10 @@ namespace Microsoft.eShopOnContainers.Services.Locations.API
             });
         }
 
+        /// <summary>
+        /// 授权认证中间件
+        /// </summary>
+        /// <param name="app"></param>
         protected virtual void ConfigureAuth(IApplicationBuilder app)
         {
             if (Configuration.GetValue<bool>("UseLoadTest"))
@@ -234,8 +261,13 @@ namespace Microsoft.eShopOnContainers.Services.Locations.API
             app.UseAuthorization();
         }
 
+        /// <summary>
+        /// 注册 event bus 领域事件服务
+        /// </summary>
+        /// <param name="services"></param>
         private void RegisterEventBus(IServiceCollection services)
         {
+            // 订阅客户端名称
             var subscriptionClientName = Configuration["SubscriptionClientName"];
 
             if (Configuration.GetValue<bool>("AzureServiceBusEnabled"))
@@ -281,6 +313,11 @@ namespace Microsoft.eShopOnContainers.Services.Locations.API
             var hcBuilder = services.AddHealthChecks();
 
             hcBuilder.AddCheck("self", () => HealthCheckResult.Healthy());
+
+            //hcBuilder
+            //    .AddSqlite(configuration["ConnectionString"],
+            //        name: "locations-sqlite-check",
+            //        tags: new string[] { "sqlite" });
 
             hcBuilder
                 .AddMongoDb(

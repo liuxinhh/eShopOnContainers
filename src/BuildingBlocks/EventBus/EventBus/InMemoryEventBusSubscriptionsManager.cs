@@ -6,10 +6,11 @@ using Microsoft.eShopOnContainers.BuildingBlocks.EventBus.Events;
 
 namespace Microsoft.eShopOnContainers.BuildingBlocks.EventBus
 {
+    /// <summary>
+    /// 领域事件订阅管理器 内存
+    /// </summary>
     public partial class InMemoryEventBusSubscriptionsManager : IEventBusSubscriptionsManager
     {
-
-
         private readonly Dictionary<string, List<SubscriptionInfo>> _handlers;
         private readonly List<Type> _eventTypes;
 

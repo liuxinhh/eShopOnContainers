@@ -50,6 +50,12 @@ namespace Microsoft.eShopOnContainers.Services.Locations.API
                 .UseSerilog()
                 .Build();
 
+        /// <summary>
+        /// Serilog 日志配置
+        /// 写入到了 seq
+        /// </summary>
+        /// <param name="configuration"></param>
+        /// <returns></returns>
         private static Serilog.ILogger CreateSerilogLogger(IConfiguration configuration)
         {
             var seqServerUrl = configuration["Serilog:SeqServerUrl"];
@@ -65,6 +71,13 @@ namespace Microsoft.eShopOnContainers.Services.Locations.API
                 .CreateLogger();
         }
 
+
+        /// <summary>
+        /// 机密管理 - Azure Key Vault 可以用来安全地存储令牌、密码、证书、API 密钥和其他机密，并对其访问进行严格控制
+        /// 密钥管理 - Azure Key Vault 也可用作密钥管理解决方案。 可以通过 Azure Key Vault 轻松创建和控制用于加密数据的加密密钥。
+        /// 证书管理 - Azure Key Vault 也是一项服务，可用来轻松预配、管理和部署公用和专用传输层安全性/安全套接字层(TLS/SSL) 证书，以用于 Azure 以及内部连接资源。
+        /// </summary>
+        /// <returns></returns>
         private static IConfiguration GetConfiguration()
         {
             var builder = new ConfigurationBuilder()

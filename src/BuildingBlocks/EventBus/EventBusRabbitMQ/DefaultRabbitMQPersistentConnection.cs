@@ -10,6 +10,9 @@ using System.Net.Sockets;
 
 namespace Microsoft.eShopOnContainers.BuildingBlocks.EventBusRabbitMQ
 {
+    /// <summary>
+    /// RabbitMq 连接接口默认实现
+    /// </summary>
     public class DefaultRabbitMQPersistentConnection
        : IRabbitMQPersistentConnection
     {

@@ -142,10 +142,9 @@ namespace Microsoft.eShopOnContainers.Services.Identity.API
             services.AddControllersWithViews();
             services.AddRazorPages();
 
+            // Autofac容器化
             var container = new ContainerBuilder();
             container.Populate(services);
-
-            // Autofac容器化
             return new AutofacServiceProvider(container.Build());
         }
 
