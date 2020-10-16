@@ -83,6 +83,12 @@ namespace Microsoft.eShopOnContainers.Services.Ordering.API
                 .UseSerilog()
                 .Build();
 
+
+        /// <summary>
+        /// serilog 日志
+        /// </summary>
+        /// <param name="configuration"></param>
+        /// <returns></returns>
         private static Serilog.ILogger CreateSerilogLogger(IConfiguration configuration)
         {
             var seqServerUrl = configuration["Serilog:SeqServerUrl"];
@@ -98,6 +104,10 @@ namespace Microsoft.eShopOnContainers.Services.Ordering.API
                 .CreateLogger();
         }
 
+        /// <summary>
+        /// 配置问及那
+        /// </summary>
+        /// <returns></returns>
         private static IConfiguration GetConfiguration()
         {
             var builder = new ConfigurationBuilder()
@@ -117,6 +127,12 @@ namespace Microsoft.eShopOnContainers.Services.Ordering.API
 
             return builder.Build();
         }
+
+        /// <summary>
+        /// 获取grpc 默认端口
+        /// </summary>
+        /// <param name="config"></param>
+        /// <returns></returns>
         private static (int httpPort, int grpcPort) GetDefinedPorts(IConfiguration config)
         {
             var grpcPort = config.GetValue("GRPC_PORT", 5001);

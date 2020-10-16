@@ -1,14 +1,20 @@
-﻿syntax = "proto3";
+﻿// 指定使用proto3
+syntax = "proto3";
 
+// 命名空间
 option csharp_namespace = "GrpcBasket";
 
 package BasketApi;
 
+// 定义服务
 service Basket {
+	// 参数为 BasketRequest 对象
+	// 返回值为 CustomerBasketResponse 对象
 	rpc GetBasketById(BasketRequest) returns (CustomerBasketResponse) {}
 	rpc UpdateBasket(CustomerBasketRequest) returns (CustomerBasketResponse) {}
 }
 
+// 消息对象的定义
 message BasketRequest {
 	string id = 1;
 }

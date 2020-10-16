@@ -3,7 +3,7 @@
     "windowsAuthentication": false,
     "anonymousAuthentication": true,
     "iisExpress": {
-      "applicationUrl": "http://localhost:55102/",
+      "applicationUrl": "http://localhost:4460",
       "sslPort": 0
     }
   },
@@ -17,12 +17,12 @@
       }
     },
     "Microsoft.eShopOnContainers.Services.Ordering.API": {
-      "commandName": "Project",
-      "launchBrowser": true,
-      "launchUrl": "http://localhost:55102/",
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      }
+        "commandName": "Project",
+        "launchBrowser": true,
+        "launchUrl": "http://localhost:4460",
+        "environmentVariables": {
+            "ASPNETCORE_ENVIRONMENT": "Development"
+        }
     }
   }
 }

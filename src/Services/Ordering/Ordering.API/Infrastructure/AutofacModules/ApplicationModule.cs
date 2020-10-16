@@ -11,6 +11,9 @@ using System.Reflection;
 namespace Microsoft.eShopOnContainers.Services.Ordering.API.Infrastructure.AutofacModules
 {
 
+    /// <summary>
+    /// 程序模块注入
+    /// </summary>
     public class ApplicationModule
         :Autofac.Module
     {

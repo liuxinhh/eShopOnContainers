@@ -51,22 +51,29 @@
         public virtual IServiceProvider ConfigureServices(IServiceCollection services)
         {
             services
-                .AddGrpc(options =>
-                {
-                    options.EnableDetailedErrors = true;
-                })
+                // 添加 Grpc
+                .AddGrpc(options => { options.EnableDetailedErrors = true; })
                 .Services
+                // 添加了AI服务
                 .AddApplicationInsights(Configuration)
+                // 添加了mvc和跨域服务
                 .AddCustomMvc()
+                // 添加健康检查服务
                 .AddHealthChecks(Configuration)
+                // 添加数据库上下文服务
                 .AddCustomDbContext(Configuration)
+                // 添加swagger 接口文档服务
                 .AddCustomSwagger(Configuration)
+                // 添加集成服务（HttpContext、Identity、RabbitMQ）服务
                 .AddCustomIntegrations(Configuration)
+                // 获取配置信息：对象方法（OrderingSettings、ApiBehaviorOptions）
                 .AddCustomConfiguration(Configuration)
+                // 添加事件发布订阅服务
                 .AddEventBus(Configuration)
+                // 添加授权认证服务
                 .AddCustomAuthentication(Configuration);
-            //configure autofac
 
+            // autofac 容器化
             var container = new ContainerBuilder();
             container.Populate(services);
 
@@ -82,6 +89,7 @@
             //loggerFactory.AddAzureWebAppDiagnostics();
             //loggerFactory.AddApplicationInsights(app.ApplicationServices, LogLevel.Trace);
 
+            // 配置基础路径
             var pathBase = Configuration["PATH_BASE"];
             if (!string.IsNullOrEmpty(pathBase))
             {
@@ -89,16 +97,24 @@
                 app.UsePathBase(pathBase);
             }
 
+            // swagger
             app.UseSwagger()
-               .UseSwaggerUI(c =>
-               {
-                   c.SwaggerEndpoint($"{ (!string.IsNullOrEmpty(pathBase) ? pathBase : string.Empty) }/swagger/v1/swagger.json", "Ordering.API V1");
-                   c.OAuthClientId("orderingswaggerui");
-                   c.OAuthAppName("Ordering Swagger UI");
-               });
+                .UseSwaggerUI(c =>
+                {
+                    c.SwaggerEndpoint(
+                        $"{(!string.IsNullOrEmpty(pathBase) ? pathBase : string.Empty)}/swagger/v1/swagger.json",
+                        "Ordering.API V1");
+                    c.OAuthClientId("orderingswaggerui");
+                    c.OAuthAppName("Ordering Swagger UI");
+                });
 
+            // 路由
             app.UseRouting();
+
+            // 跨域
             app.UseCors("CorsPolicy");
+
+            // 授权认证
             ConfigureAuth(app);
 
             app.UseEndpoints(endpoints =>
@@ -109,7 +125,8 @@
                 endpoints.MapGet("/_proto/", async ctx =>
                 {
                     ctx.Response.ContentType = "text/plain";
-                    using var fs = new FileStream(Path.Combine(env.ContentRootPath, "Proto", "basket.proto"), FileMode.Open, FileAccess.Read);
+                    using var fs = new FileStream(Path.Combine(env.ContentRootPath, "Proto", "basket.proto"),
+                        FileMode.Open, FileAccess.Read);
                     using var sr = new StreamReader(fs);
                     while (!sr.EndOfStream)
                     {
@@ -131,6 +148,7 @@
                 });
             });
 
+            // 配置领域事件
             ConfigureEventBus(app);
         }
 
@@ -139,14 +157,30 @@
         {
             var eventBus = app.ApplicationServices.GetRequiredService<BuildingBlocks.EventBus.Abstractions.IEventBus>();
 
-            eventBus.Subscribe<UserCheckoutAcceptedIntegrationEvent, IIntegrationEventHandler<UserCheckoutAcceptedIntegrationEvent>>();
-            eventBus.Subscribe<GracePeriodConfirmedIntegrationEvent, IIntegrationEventHandler<GracePeriodConfirmedIntegrationEvent>>();
-            eventBus.Subscribe<OrderStockConfirmedIntegrationEvent, IIntegrationEventHandler<OrderStockConfirmedIntegrationEvent>>();
-            eventBus.Subscribe<OrderStockRejectedIntegrationEvent, IIntegrationEventHandler<OrderStockRejectedIntegrationEvent>>();
-            eventBus.Subscribe<OrderPaymentFailedIntegrationEvent, IIntegrationEventHandler<OrderPaymentFailedIntegrationEvent>>();
-            eventBus.Subscribe<OrderPaymentSucceededIntegrationEvent, IIntegrationEventHandler<OrderPaymentSucceededIntegrationEvent>>();
+            eventBus
+                .Subscribe<UserCheckoutAcceptedIntegrationEvent,
+                    IIntegrationEventHandler<UserCheckoutAcceptedIntegrationEvent>>();
+            eventBus
+                .Subscribe<GracePeriodConfirmedIntegrationEvent,
+                    IIntegrationEventHandler<GracePeriodConfirmedIntegrationEvent>>();
+            eventBus
+                .Subscribe<OrderStockConfirmedIntegrationEvent,
+                    IIntegrationEventHandler<OrderStockConfirmedIntegrationEvent>>();
+            eventBus
+                .Subscribe<OrderStockRejectedIntegrationEvent,
+                    IIntegrationEventHandler<OrderStockRejectedIntegrationEvent>>();
+            eventBus
+                .Subscribe<OrderPaymentFailedIntegrationEvent,
+                    IIntegrationEventHandler<OrderPaymentFailedIntegrationEvent>>();
+            eventBus
+                .Subscribe<OrderPaymentSucceededIntegrationEvent,
+                    IIntegrationEventHandler<OrderPaymentSucceededIntegrationEvent>>();
         }
 
+        /// <summary>
+        /// 授权认证
+        /// </summary>
+        /// <param name="app"></param>
         protected virtual void ConfigureAuth(IApplicationBuilder app)
         {
             if (Configuration.GetValue<bool>("UseLoadTest"))
@@ -161,7 +195,15 @@
 
     static class CustomExtensionsMethods
     {
-        public static IServiceCollection AddApplicationInsights(this IServiceCollection services, IConfiguration configuration)
+        /// <summary>
+        /// 添加了AI服务
+        /// AI是微软基于Azure平台所提供的一个应用程序性能管理 (APM) 服务， 使用它可以监视实时 Web 应用程序。 它会自动检测性能异常。 其中包含强大的分析工具来帮助诊断问题，了解用户在应用中实际执行了哪些操作。
+        /// </summary>
+        /// <param name="services"></param>
+        /// <param name="configuration"></param>
+        /// <returns></returns>
+        public static IServiceCollection AddApplicationInsights(this IServiceCollection services,
+            IConfiguration configuration)
         {
             services.AddApplicationInsightsTelemetry(configuration);
             services.AddApplicationInsightsKubernetesEnricher();
@@ -169,32 +211,40 @@
             return services;
         }
 
+        /// <summary>
+        /// 添加了mvc和跨域服务
+        /// </summary>
+        /// <param name="services"></param>
+        /// <returns></returns>
         public static IServiceCollection AddCustomMvc(this IServiceCollection services)
         {
             // Add framework services.
-            services.AddControllers(options =>
-                {
-                    options.Filters.Add(typeof(HttpGlobalExceptionFilter));
-                })
-                // Added for functional tests
+            services.AddControllers(options => { options.Filters.Add(typeof(HttpGlobalExceptionFilter)); })
+                // 添加测试
                 .AddApplicationPart(typeof(OrdersController).Assembly)
                 .AddNewtonsoftJson()
                 .SetCompatibilityVersion(CompatibilityVersion.Version_3_0)
-            ;
+                ;
 
             services.AddCors(options =>
             {
                 options.AddPolicy("CorsPolicy",
                     builder => builder
-                    .SetIsOriginAllowed((host) => true)
-                    .AllowAnyMethod()
-                    .AllowAnyHeader()
-                    .AllowCredentials());
+                        .SetIsOriginAllowed((host) => true)
+                        .AllowAnyMethod()
+                        .AllowAnyHeader()
+                        .AllowCredentials());
             });
 
             return services;
         }
 
+        /// <summary>
+        /// 健康检查
+        /// </summary>
+        /// <param name="services"></param>
+        /// <param name="configuration"></param>
+        /// <returns></returns>
         public static IServiceCollection AddHealthChecks(this IServiceCollection services, IConfiguration configuration)
         {
             var hcBuilder = services.AddHealthChecks();
@@ -207,6 +257,12 @@
                     name: "OrderingDB-check",
                     tags: new string[] { "orderingdb" });
 
+            //hcBuilder
+            //    .AddSqlite(
+            //        configuration["ConnectionString"],
+            //        name: "OrderingDB-check",
+            //        tags: new string[] {"orderingdb"});
+
             if (configuration.GetValue<bool>("AzureServiceBusEnabled"))
             {
                 hcBuilder
@@ -214,7 +270,7 @@
                         configuration["EventBusConnection"],
                         topicName: "eshop_event_bus",
                         name: "ordering-servicebus-check",
-                        tags: new string[] { "servicebus" });
+                        tags: new string[] {"servicebus"});
             }
             else
             {
@@ -222,42 +278,58 @@
                     .AddRabbitMQ(
                         $"amqp://{configuration["EventBusConnection"]}",
                         name: "ordering-rabbitmqbus-check",
-                        tags: new string[] { "rabbitmqbus" });
+                        tags: new string[] {"rabbitmqbus"});
             }
 
             return services;
         }
 
-        public static IServiceCollection AddCustomDbContext(this IServiceCollection services, IConfiguration configuration)
+        /// <summary>
+        /// 添加数据库上下文服务
+        /// </summary>
+        /// <param name="services"></param>
+        /// <param name="configuration"></param>
+        /// <returns></returns>
+        public static IServiceCollection AddCustomDbContext(this IServiceCollection services,
+            IConfiguration configuration)
         {
-            services.AddEntityFrameworkSqlServer()
-                   .AddDbContext<OrderingContext>(options =>
-                   {
-                       options.UseSqlServer(configuration["ConnectionString"],
-                           sqlServerOptionsAction: sqlOptions =>
-                           {
-                               sqlOptions.MigrationsAssembly(typeof(Startup).GetTypeInfo().Assembly.GetName().Name);
-                               sqlOptions.EnableRetryOnFailure(maxRetryCount: 15, maxRetryDelay: TimeSpan.FromSeconds(30), errorNumbersToAdd: null);
-                           });
-                   },
-                       ServiceLifetime.Scoped  //Showing explicitly that the DbContext is shared across the HTTP request scope (graph of objects started in the HTTP request)
-                   );
+            services
+                //.AddEntityFrameworkSqlite()
+                .AddEntityFrameworkSqlServer()
+                .AddDbContext<OrderingContext>(options =>
+                    {
+                        options.UseSqlServer(configuration["ConnectionString"],
+                            sqlOptions =>
+                            {
+                                sqlOptions.MigrationsAssembly(typeof(Startup).GetTypeInfo().Assembly.GetName().Name);
+                                sqlOptions.EnableRetryOnFailure(maxRetryCount: 15, maxRetryDelay: TimeSpan.FromSeconds(30), errorNumbersToAdd: null);
+                            });
+                    },
+                    ServiceLifetime
+                        .Scoped //Showing explicitly that the DbContext is shared across the HTTP request scope (graph of objects started in the HTTP request)
+                );
 
             services.AddDbContext<IntegrationEventLogContext>(options =>
             {
                 options.UseSqlServer(configuration["ConnectionString"],
-                                     sqlServerOptionsAction: sqlOptions =>
-                                     {
-                                         sqlOptions.MigrationsAssembly(typeof(Startup).GetTypeInfo().Assembly.GetName().Name);
-                                         //Configuring Connection Resiliency: https://docs.microsoft.com/en-us/ef/core/miscellaneous/connection-resiliency 
-                                         sqlOptions.EnableRetryOnFailure(maxRetryCount: 15, maxRetryDelay: TimeSpan.FromSeconds(30), errorNumbersToAdd: null);
-                                     });
+                     sqlOptions =>
+                    {
+                        sqlOptions.MigrationsAssembly(typeof(Startup).GetTypeInfo().Assembly.GetName().Name);
+                        sqlOptions.EnableRetryOnFailure(maxRetryCount: 15, maxRetryDelay: TimeSpan.FromSeconds(30), errorNumbersToAdd: null);
+                    });
             });
 
             return services;
         }
 
-        public static IServiceCollection AddCustomSwagger(this IServiceCollection services, IConfiguration configuration)
+        /// <summary>
+        /// 添加swagger 接口文档服务
+        /// </summary>
+        /// <param name="services"></param>
+        /// <param name="configuration"></param>
+        /// <returns></returns>
+        public static IServiceCollection AddCustomSwagger(this IServiceCollection services,
+            IConfiguration configuration)
         {
             services.AddSwaggerGen(options =>
             {
@@ -275,11 +347,13 @@
                     {
                         Implicit = new OpenApiOAuthFlow()
                         {
-                            AuthorizationUrl = new Uri($"{configuration.GetValue<string>("IdentityUrlExternal")}/connect/authorize"),
-                            TokenUrl = new Uri($"{configuration.GetValue<string>("IdentityUrlExternal")}/connect/token"),
+                            AuthorizationUrl =
+                                new Uri($"{configuration.GetValue<string>("IdentityUrl")}/connect/authorize"),
+                            TokenUrl =
+                                new Uri($"{configuration.GetValue<string>("IdentityUrl")}/connect/token"),
                             Scopes = new Dictionary<string, string>()
                             {
-                                { "orders", "Ordering API" }
+                                {"orders", "Ordering API"}
                             }
                         }
                     }
@@ -291,7 +365,14 @@
             return services;
         }
 
-        public static IServiceCollection AddCustomIntegrations(this IServiceCollection services, IConfiguration configuration)
+        /// <summary>
+        /// 添加集成服务（HttpContext、Identity、RabbitMQ）服务
+        /// </summary>
+        /// <param name="services"></param>
+        /// <param name="configuration"></param>
+        /// <returns></returns>
+        public static IServiceCollection AddCustomIntegrations(this IServiceCollection services,
+            IConfiguration configuration)
         {
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
             services.AddTransient<IIdentityService, IdentityService>();
@@ -348,10 +429,19 @@
             return services;
         }
 
-        public static IServiceCollection AddCustomConfiguration(this IServiceCollection services, IConfiguration configuration)
+        /// <summary>
+        /// 获取配置信息：对象方法（OrderingSettings、ApiBehaviorOptions）
+        /// </summary>
+        /// <param name="services"></param>
+        /// <param name="configuration"></param>
+        /// <returns></returns>
+        public static IServiceCollection AddCustomConfiguration(this IServiceCollection services,
+            IConfiguration configuration)
         {
             services.AddOptions();
             services.Configure<OrderingSettings>(configuration);
+
+            // 自定义模型验证
             services.Configure<ApiBehaviorOptions>(options =>
             {
                 options.InvalidModelStateResponseFactory = context =>
@@ -365,7 +455,7 @@
 
                     return new BadRequestObjectResult(problemDetails)
                     {
-                        ContentTypes = { "application/problem+json", "application/problem+xml" }
+                        ContentTypes = {"application/problem+json", "application/problem+xml"}
                     };
                 };
             });
@@ -373,6 +463,7 @@
             return services;
         }
 
+        // 添加事件发布订阅服务
         public static IServiceCollection AddEventBus(this IServiceCollection services, IConfiguration configuration)
         {
             var subscriptionClientName = configuration["SubscriptionClientName"];
@@ -405,7 +496,8 @@
                         retryCount = int.Parse(configuration["EventBusRetryCount"]);
                     }
 
-                    return new EventBusRabbitMQ(rabbitMQPersistentConnection, logger, iLifetimeScope, eventBusSubcriptionsManager, subscriptionClientName, retryCount);
+                    return new EventBusRabbitMQ(rabbitMQPersistentConnection, logger, iLifetimeScope,
+                        eventBusSubcriptionsManager, subscriptionClientName, retryCount);
                 });
             }
 
@@ -414,7 +506,14 @@
             return services;
         }
 
-        public static IServiceCollection AddCustomAuthentication(this IServiceCollection services, IConfiguration configuration)
+        /// <summary>
+        /// 添加授权认证服务
+        /// </summary>
+        /// <param name="services"></param>
+        /// <param name="configuration"></param>
+        /// <returns></returns>
+        public static IServiceCollection AddCustomAuthentication(this IServiceCollection services,
+            IConfiguration configuration)
         {
             // prevent from mapping "sub" claim to nameidentifier.
             JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Remove("sub");
@@ -423,9 +522,10 @@
 
             services.AddAuthentication(options =>
             {
-                options.DefaultAuthenticateScheme = AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
-
+                options.DefaultAuthenticateScheme =
+                    AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme =
+                    AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
             }).AddJwtBearer(options =>
             {
                 options.Authority = identityUrl;

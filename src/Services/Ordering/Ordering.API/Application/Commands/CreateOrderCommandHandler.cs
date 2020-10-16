@@ -11,7 +11,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    // Regular CommandHandler
+    // 创建订单领域事件处理器
     public class CreateOrderCommandHandler
         : IRequestHandler<CreateOrderCommand, bool>
     {
