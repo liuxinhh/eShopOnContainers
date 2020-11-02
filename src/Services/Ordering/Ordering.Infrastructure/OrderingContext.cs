@@ -54,16 +54,16 @@ namespace Microsoft.eShopOnContainers.Services.Ordering.Infrastructure
 
         public async Task<bool> SaveEntitiesAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
-            // Dispatch Domain Events collection. 
-            // Choices:
-            // A) Right BEFORE committing data (EF SaveChanges) into the DB will make a single transaction including  
-            // side effects from the domain event handlers which are using the same DbContext with "InstancePerLifetimeScope" or "scoped" lifetime
-            // B) Right AFTER committing data (EF SaveChanges) into the DB will make multiple transactions. 
-            // You will need to handle eventual consistency and compensatory actions in case of failures in any of the Handlers. 
+            //分派域事件集合。
+            // 选择:
+            // A)在提交数据(EF SaveChanges)到数据库之前，将执行一个单独的事务，包括
+            //使用相同的DbContext和“InstancePerLifetimeScope”或“scoped”生命周期的域事件处理程序的副作用
+            // B)在提交数据(EF SaveChanges)到数据库后将立即进行多个事务处理。
+            //如果任何处理程序失败，您将需要处理最终的一致性和补偿操作。
             await _mediator.DispatchDomainEventsAsync(this);
 
-            // After executing this line all the changes (from the Command Handler and Domain Event Handlers) 
-            // performed through the DbContext will be committed
+            //在执行此行之后，所有更改(来自命令处理程序和域事件处理程序)
+            //通过DbContext执行将被提交
             var result = await base.SaveChangesAsync(cancellationToken);
 
             return true;
