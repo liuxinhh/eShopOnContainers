@@ -56,6 +56,7 @@ namespace Microsoft.eShopOnContainers.Services.Ordering.API.Controllers
                     requestCancelOrder.Command.OrderNumber,
                     requestCancelOrder);
 
+                // 发布 取消订单事件
                 commandResult = await _mediator.Send(requestCancelOrder);
             }
 

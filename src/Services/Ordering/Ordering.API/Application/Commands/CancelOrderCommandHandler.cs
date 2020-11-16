@@ -26,6 +26,7 @@ namespace Ordering.API.Application.Commands
         /// <returns></returns>
         public async Task<bool> Handle(CancelOrderCommand command, CancellationToken cancellationToken)
         {
+            // 消费 订单取消事件 
             var orderToUpdate = await _orderRepository.GetAsync(command.OrderNumber);
             if(orderToUpdate == null)
             {

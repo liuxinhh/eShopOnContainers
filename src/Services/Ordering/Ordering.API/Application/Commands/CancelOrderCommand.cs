@@ -9,7 +9,7 @@ namespace Ordering.API.Application.Commands
 {
     public class CancelOrderCommand : IRequest<bool>
     {
-
+        // todo [DataMember] 表示属性可以被序列化
         [DataMember]
         public int OrderNumber { get; private set; }
         public CancelOrderCommand()
