@@ -45,22 +45,26 @@ namespace Microsoft.eShopOnContainers.Services.Basket.API
 
         private static IWebHost BuildWebHost(IConfiguration configuration, string[] args) =>
             WebHost.CreateDefaultBuilder(args)
+                // 捕获启动异常
                 .CaptureStartupErrors(false)
+                // 配置Kestrel服务器
                 .ConfigureKestrel(options =>
                 {
                     var ports = GetDefinedPorts(configuration);
-                    options.Listen(IPAddress.Any, ports.httpPort, listenOptions =>
-                    {
-                        listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
-                    });
-
-                    options.Listen(IPAddress.Any, ports.grpcPort, listenOptions =>
-                    {
-                        listenOptions.Protocols = HttpProtocols.Http2;
-                    });
-
+                    // options.Listen(IPAddress.Any, ports.httpPort, listenOptions =>
+                    // {
+                    //     listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
+                    // });
+                    //
+                    // options.Listen(IPAddress.Any, ports.grpcPort, listenOptions =>
+                    // {
+                    //     listenOptions.Protocols = HttpProtocols.Http2;
+                    // });
+                
                 })
+                // 应用配置
                 .ConfigureAppConfiguration(x => x.AddConfiguration(configuration))
+                // 自定义失败中间件               
                 .UseFailing(options => {
                     options.ConfigPath = "/Failing";
                     options.NotFilteredPaths.AddRange(new[] {"/hc","/liveness"});
@@ -68,6 +72,7 @@ namespace Microsoft.eShopOnContainers.Services.Basket.API
                 .UseStartup<Startup>()
                 .UseContentRoot(Directory.GetCurrentDirectory())
                 .UseSerilog()
+                .UseUrls("https://*:55103")
                 .Build();
 
         private static Serilog.ILogger CreateSerilogLogger(IConfiguration configuration)

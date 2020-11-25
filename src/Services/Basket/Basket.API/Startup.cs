@@ -36,9 +36,15 @@ using System.IO;
 using GrpcBasket;
 using Microsoft.AspNetCore.Http.Features;
 using Serilog;
+using Swashbuckle.AspNetCore.Filters;
 
 namespace Microsoft.eShopOnContainers.Services.Basket.API
 {
+    /// <summary>
+    /// GRPC、APP监控、Swagger、HealthCheck、Redis、事件总线、队列、RabbitM、
+    /// 跨域、仓储、过滤器、Autofoc容器、Docker容器、容器编排、ids4、ddd、单元测试、继承测试、
+    /// 中介者模式、订阅发布模式
+    /// </summary>
     public class Startup
     {
         public Startup(IConfiguration configuration)
@@ -51,21 +57,36 @@ namespace Microsoft.eShopOnContainers.Services.Basket.API
         // This method gets called by the runtime. Use this method to add services to the container.
         public virtual IServiceProvider ConfigureServices(IServiceCollection services)
         {
+            #region GRPC
+
             services.AddGrpc(options =>
             {
                 options.EnableDetailedErrors = true;
             });
 
+            #endregion
+
+            // 注册app监控
             RegisterAppInsights(services);
+
+            #region MVC服务
 
             services.AddControllers(options =>
                 {
+                    
+                    // 全局异常过滤器
                     options.Filters.Add(typeof(HttpGlobalExceptionFilter));
+                    // 模型验证过滤器
                     options.Filters.Add(typeof(ValidateModelStateFilter));
 
-                }) // Added for functional tests
+                })
+                // 功能集成测试
                 .AddApplicationPart(typeof(BasketController).Assembly)
                 .AddNewtonsoftJson();
+
+            #endregion
+
+            #region Swagger
 
             services.AddSwaggerGen(options =>
             {
@@ -94,31 +115,40 @@ namespace Microsoft.eShopOnContainers.Services.Basket.API
                     }
                 });
 
+                options.OperationFilter<AddResponseHeadersFilter>();
+                options.OperationFilter<AppendAuthorizeToSummaryOperationFilter>();
+                
                 options.OperationFilter<AuthorizeCheckOperationFilter>();
             });
 
+            #endregion
+
+            // 认证服务
             ConfigureAuthService(services);
 
+            // 自定义健康检查
             services.AddCustomHealthCheck(Configuration);
 
+            // 配置服务
             services.Configure<BasketSettings>(Configuration);
 
-            //By connecting here we are making sure that our service
-            //cannot start until redis is ready. This might slow down startup,
-            //but given that there is a delay on resolving the ip address
-            //and then creating the connection it seems reasonable to move
-            //that cost to startup instead of having the first request pay the
-            //penalty.
+            #region Redis
+            // 配置启动Redis 服务、虽然影响启动速度，但是不能在运行时报错，合理
             services.AddSingleton<ConnectionMultiplexer>(sp =>
             {
                 var settings = sp.GetRequiredService<IOptions<BasketSettings>>().Value;
                 var configuration = ConfigurationOptions.Parse(settings.ConnectionString, true);
 
+                configuration.SetDefaultPorts();
+                configuration.Password = "123456";
                 configuration.ResolveDns = true;
 
                 return ConnectionMultiplexer.Connect(configuration);
             });
 
+            #endregion
+
+            #region Azure或RabbitMQ
 
             if (Configuration.GetValue<bool>("AzureServiceBusEnabled"))
             {
@@ -164,24 +194,32 @@ namespace Microsoft.eShopOnContainers.Services.Basket.API
                 });
             }
 
+            #endregion
+
+            // 事件总线
             RegisterEventBus(services);
 
-
+            #region 跨域
+            
             services.AddCors(options =>
             {
                 options.AddPolicy("CorsPolicy",
                     builder => builder
-                    .SetIsOriginAllowed((host) => true)
-                    .AllowAnyMethod()
-                    .AllowAnyHeader()
-                    .AllowCredentials());
+                        .SetIsOriginAllowed((host) => true)
+                        .AllowAnyMethod()
+                        .AllowAnyHeader()
+                        .AllowCredentials());
             });
+            
+            #endregion
+            
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
             services.AddTransient<IBasketRepository, RedisBasketRepository>();
             services.AddTransient<IIdentityService, IdentityService>();
 
             services.AddOptions();
 
+            // Autofoc 容器
             var container = new ContainerBuilder();
             container.Populate(services);
 
@@ -200,6 +238,7 @@ namespace Microsoft.eShopOnContainers.Services.Basket.API
                 app.UsePathBase(pathBase);
             }
 
+            // Swagger
             app.UseSwagger()
                .UseSwaggerUI(setup =>
                {
@@ -208,14 +247,19 @@ namespace Microsoft.eShopOnContainers.Services.Basket.API
                    setup.OAuthAppName("Basket Swagger UI");
                });
 
+            // 路由
             app.UseRouting();
+            // 跨域
             app.UseCors("CorsPolicy");
+            // 授权认证
             ConfigureAuth(app);
-
+            // 静态文件
             app.UseStaticFiles();
             
+            // 节点路由
             app.UseEndpoints(endpoints =>
             {
+                // GRPC
                 endpoints.MapGrpcService<BasketService>();
                 endpoints.MapDefaultControllerRoute();
                 endpoints.MapControllers();
@@ -233,6 +277,9 @@ namespace Microsoft.eShopOnContainers.Services.Basket.API
                         }
                     }
                 });
+
+                #region 健康检测
+
                 endpoints.MapHealthChecks("/hc", new HealthCheckOptions()
                 {
                     Predicate = _ => true,
@@ -242,8 +289,11 @@ namespace Microsoft.eShopOnContainers.Services.Basket.API
                 {
                     Predicate = r => r.Name.Contains("self")
                 });
+
+                #endregion
             });
 
+            // 事件总线
             ConfigureEventBus(app);
         }
 
@@ -275,6 +325,7 @@ namespace Microsoft.eShopOnContainers.Services.Basket.API
 
         protected virtual void ConfigureAuth(IApplicationBuilder app)
         {
+            // 测试用户，用来通过鉴权
             if (Configuration.GetValue<bool>("UseLoadTest"))
             {
                 app.UseMiddleware<ByPassAuthMiddleware>();
@@ -284,6 +335,10 @@ namespace Microsoft.eShopOnContainers.Services.Basket.API
             app.UseAuthorization();
         }
 
+        /// <summary>
+        /// 事件总线
+        /// </summary>
+        /// <param name="services"></param>
         private void RegisterEventBus(IServiceCollection services)
         {
             var subscriptionClientName = Configuration["SubscriptionClientName"];
