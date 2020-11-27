@@ -32,6 +32,13 @@ namespace Microsoft.eShopOnContainers.Services.Catalog.API.Controllers
         }
 
         // GET api/v1/[controller]/items[?pageSize=3&pageIndex=10]
+        /// <summary>
+        /// 查询商品并分页
+        /// </summary>
+        /// <param name="pageSize"></param>
+        /// <param name="pageIndex"></param>
+        /// <param name="ids"></param>
+        /// <returns></returns>
         [HttpGet]
         [Route("items")]
         [ProducesResponseType(typeof(PaginatedItemsViewModel<CatalogItem>), (int)HttpStatusCode.OK)]
@@ -95,6 +102,11 @@ namespace Microsoft.eShopOnContainers.Services.Catalog.API.Controllers
             return items;
         }
 
+        /// <summary>
+        /// 获取商品详情
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpGet]
         [Route("items/{id:int}")]
         [ProducesResponseType((int)HttpStatusCode.NotFound)]
@@ -123,6 +135,13 @@ namespace Microsoft.eShopOnContainers.Services.Catalog.API.Controllers
         }
 
         // GET api/v1/[controller]/items/withname/samplename[?pageSize=3&pageIndex=10]
+        /// <summary>
+        /// 根据名字查询名字
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="pageSize"></param>
+        /// <param name="pageIndex"></param>
+        /// <returns></returns>
         [HttpGet]
         [Route("items/withname/{name:minlength(1)}")]
         [ProducesResponseType(typeof(PaginatedItemsViewModel<CatalogItem>), (int)HttpStatusCode.OK)]
@@ -144,6 +163,14 @@ namespace Microsoft.eShopOnContainers.Services.Catalog.API.Controllers
         }
 
         // GET api/v1/[controller]/items/type/1/brand[?pageSize=3&pageIndex=10]
+        /// <summary>
+        /// 根据类型 + 商家 查询
+        /// </summary>
+        /// <param name="catalogTypeId"></param>
+        /// <param name="catalogBrandId"></param>
+        /// <param name="pageSize"></param>
+        /// <param name="pageIndex"></param>
+        /// <returns></returns>
         [HttpGet]
         [Route("items/type/{catalogTypeId}/brand/{catalogBrandId:int?}")]
         [ProducesResponseType(typeof(PaginatedItemsViewModel<CatalogItem>), (int)HttpStatusCode.OK)]
@@ -172,6 +199,13 @@ namespace Microsoft.eShopOnContainers.Services.Catalog.API.Controllers
         }
 
         // GET api/v1/[controller]/items/type/all/brand[?pageSize=3&pageIndex=10]
+        /// <summary>
+        /// 根据商家查询
+        /// </summary>
+        /// <param name="catalogBrandId"></param>
+        /// <param name="pageSize"></param>
+        /// <param name="pageIndex"></param>
+        /// <returns></returns>
         [HttpGet]
         [Route("items/type/all/brand/{catalogBrandId:int?}")]
         [ProducesResponseType(typeof(PaginatedItemsViewModel<CatalogItem>), (int)HttpStatusCode.OK)]
@@ -198,6 +232,10 @@ namespace Microsoft.eShopOnContainers.Services.Catalog.API.Controllers
         }
 
         // GET api/v1/[controller]/CatalogTypes
+        /// <summary>
+        /// 所有商品类别
+        /// </summary>
+        /// <returns></returns>
         [HttpGet]
         [Route("catalogtypes")]
         [ProducesResponseType(typeof(List<CatalogType>), (int)HttpStatusCode.OK)]
@@ -207,6 +245,10 @@ namespace Microsoft.eShopOnContainers.Services.Catalog.API.Controllers
         }
 
         // GET api/v1/[controller]/CatalogBrands
+        /// <summary>
+        /// 所有商品商家
+        /// </summary>
+        /// <returns></returns>
         [HttpGet]
         [Route("catalogbrands")]
         [ProducesResponseType(typeof(List<CatalogBrand>), (int)HttpStatusCode.OK)]

@@ -46,6 +46,7 @@ namespace Microsoft.eShopOnContainers.Services.Catalog.API
 
         public IServiceProvider ConfigureServices(IServiceCollection services)
         {
+            // 自定义拓展
             services.AddAppInsight(Configuration)
                 .AddGrpc().Services
                 .AddCustomMVC(Configuration)
@@ -56,6 +57,7 @@ namespace Microsoft.eShopOnContainers.Services.Catalog.API
                 .AddSwagger(Configuration)
                 .AddCustomHealthCheck(Configuration);
 
+            // Autofac 依赖注入
             var container = new ContainerBuilder();
             container.Populate(services);
 
@@ -78,11 +80,13 @@ namespace Microsoft.eShopOnContainers.Services.Catalog.API
             }
 
             app.UseSwagger()
-             .UseSwaggerUI(c =>
-             {
-                 c.SwaggerEndpoint($"{ (!string.IsNullOrEmpty(pathBase) ? pathBase : string.Empty) }/swagger/v1/swagger.json", "Catalog.API V1");
-             });
-            
+                .UseSwaggerUI(c =>
+                {
+                    c.SwaggerEndpoint(
+                        $"{(!string.IsNullOrEmpty(pathBase) ? pathBase : string.Empty)}/swagger/v1/swagger.json",
+                        "Catalog.API V1");
+                });
+
             app.UseRouting();
             app.UseCors("CorsPolicy");
             app.UseEndpoints(endpoints =>
@@ -92,7 +96,8 @@ namespace Microsoft.eShopOnContainers.Services.Catalog.API
                 endpoints.MapGet("/_proto/", async ctx =>
                 {
                     ctx.Response.ContentType = "text/plain";
-                    using var fs = new FileStream(Path.Combine(env.ContentRootPath, "Proto", "catalog.proto"), FileMode.Open, FileAccess.Read);
+                    using var fs = new FileStream(Path.Combine(env.ContentRootPath, "Proto", "catalog.proto"),
+                        FileMode.Open, FileAccess.Read);
                     using var sr = new StreamReader(fs);
                     while (!sr.EndOfStream)
                     {
@@ -115,19 +120,37 @@ namespace Microsoft.eShopOnContainers.Services.Catalog.API
                 });
             });
 
+            // 配置事件总线
             ConfigureEventBus(app);
         }
 
+        /// <summary>
+        /// 配置事件总线
+        /// 等待验证 + 等待支付
+        /// </summary>
+        /// <param name="app"></param>
         protected virtual void ConfigureEventBus(IApplicationBuilder app)
         {
             var eventBus = app.ApplicationServices.GetRequiredService<IEventBus>();
-            eventBus.Subscribe<OrderStatusChangedToAwaitingValidationIntegrationEvent, OrderStatusChangedToAwaitingValidationIntegrationEventHandler>();
-            eventBus.Subscribe<OrderStatusChangedToPaidIntegrationEvent, OrderStatusChangedToPaidIntegrationEventHandler>();
+            eventBus
+                .Subscribe<OrderStatusChangedToAwaitingValidationIntegrationEvent,
+                    OrderStatusChangedToAwaitingValidationIntegrationEventHandler>();
+            eventBus
+                .Subscribe<OrderStatusChangedToPaidIntegrationEvent, OrderStatusChangedToPaidIntegrationEventHandler>();
         }
     }
 
+    /// <summary>
+    /// 自定拓展
+    /// </summary>
     public static class CustomExtensionMethods
     {
+        /// <summary>
+        /// 拓展方法 App监控
+        /// </summary>
+        /// <param name="services"></param>
+        /// <param name="configuration"></param>
+        /// <returns></returns>
         public static IServiceCollection AddAppInsight(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddApplicationInsightsTelemetry(configuration);
@@ -136,27 +159,38 @@ namespace Microsoft.eShopOnContainers.Services.Catalog.API
             return services;
         }
 
+        /// <summary>
+        /// 拓展方法 MVC
+        /// </summary>
+        /// <param name="services"></param>
+        /// <param name="configuration"></param>
+        /// <returns></returns>
         public static IServiceCollection AddCustomMVC(this IServiceCollection services, IConfiguration configuration)
         {
-            services.AddControllers(options =>
-            {
-                options.Filters.Add(typeof(HttpGlobalExceptionFilter));
-            }).AddNewtonsoftJson();
+            services.AddControllers(options => { options.Filters.Add(typeof(HttpGlobalExceptionFilter)); })
+                .AddNewtonsoftJson();
 
             services.AddCors(options =>
             {
                 options.AddPolicy("CorsPolicy",
                     builder => builder
-                    .SetIsOriginAllowed((host) => true)
-                    .AllowAnyMethod()
-                    .AllowAnyHeader()
-                    .AllowCredentials());
+                        .SetIsOriginAllowed((host) => true)
+                        .AllowAnyMethod()
+                        .AllowAnyHeader()
+                        .AllowCredentials());
             });
 
             return services;
         }
 
-        public static IServiceCollection AddCustomHealthCheck(this IServiceCollection services, IConfiguration configuration)
+        /// <summary>
+        /// 拓展服务 健康检查
+        /// </summary>
+        /// <param name="services"></param>
+        /// <param name="configuration"></param>
+        /// <returns></returns>
+        public static IServiceCollection AddCustomHealthCheck(this IServiceCollection services,
+            IConfiguration configuration)
         {
             var accountName = configuration.GetValue<string>("AzureStorageAccountName");
             var accountKey = configuration.GetValue<string>("AzureStorageAccountKey");
@@ -165,10 +199,10 @@ namespace Microsoft.eShopOnContainers.Services.Catalog.API
 
             hcBuilder
                 .AddCheck("self", () => HealthCheckResult.Healthy())
-                .AddSqlServer(
+                .AddMySql(
                     configuration["ConnectionString"],
                     name: "CatalogDB-check",
-                    tags: new string[] { "catalogdb" });
+                    tags: new string[] {"catalogdb"});
 
             if (!string.IsNullOrEmpty(accountName) && !string.IsNullOrEmpty(accountKey))
             {
@@ -176,7 +210,7 @@ namespace Microsoft.eShopOnContainers.Services.Catalog.API
                     .AddAzureBlobStorage(
                         $"DefaultEndpointsProtocol=https;AccountName={accountName};AccountKey={accountKey};EndpointSuffix=core.windows.net",
                         name: "catalog-storage-check",
-                        tags: new string[] { "catalogstorage" });
+                        tags: new string[] {"catalogstorage"});
             }
 
             if (configuration.GetValue<bool>("AzureServiceBusEnabled"))
@@ -186,7 +220,7 @@ namespace Microsoft.eShopOnContainers.Services.Catalog.API
                         configuration["EventBusConnection"],
                         topicName: "eshop_event_bus",
                         name: "catalog-servicebus-check",
-                        tags: new string[] { "servicebus" });
+                        tags: new string[] {"servicebus"});
             }
             else
             {
@@ -194,43 +228,62 @@ namespace Microsoft.eShopOnContainers.Services.Catalog.API
                     .AddRabbitMQ(
                         $"amqp://{configuration["EventBusConnection"]}",
                         name: "catalog-rabbitmqbus-check",
-                        tags: new string[] { "rabbitmqbus" });
+                        tags: new string[] {"rabbitmqbus"});
             }
 
             return services;
         }
 
-        public static IServiceCollection AddCustomDbContext(this IServiceCollection services, IConfiguration configuration)
+        /// <summary>
+        /// 拓展方法  自定义Db上下文
+        /// </summary>
+        /// <param name="services"></param>
+        /// <param name="configuration"></param>
+        /// <returns></returns>
+        public static IServiceCollection AddCustomDbContext(this IServiceCollection services,
+            IConfiguration configuration)
         {
-            services.AddEntityFrameworkSqlServer()
+            // 商品目录
+            services.AddEntityFrameworkMySql()
                 .AddDbContext<CatalogContext>(options =>
-            {
-                options.UseSqlServer(configuration["ConnectionString"],
-                                     sqlServerOptionsAction: sqlOptions =>
-                                     {
-                                         sqlOptions.MigrationsAssembly(typeof(Startup).GetTypeInfo().Assembly.GetName().Name);
-                                         //Configuring Connection Resiliency: https://docs.microsoft.com/en-us/ef/core/miscellaneous/connection-resiliency 
-                                         sqlOptions.EnableRetryOnFailure(maxRetryCount: 15, maxRetryDelay: TimeSpan.FromSeconds(30), errorNumbersToAdd: null);
-                                     });
-            });
+                {
+                    options.UseMySql(configuration["ConnectionString"],
+                        mySqlOptionsAction: sqlOptions =>
+                        {
+                            sqlOptions.MigrationsAssembly(typeof(Startup).GetTypeInfo().Assembly.GetName().Name);
+                            //Configuring Connection Resiliency: https://docs.microsoft.com/en-us/ef/core/miscellaneous/connection-resiliency 
+                            sqlOptions.EnableRetryOnFailure(maxRetryCount: 15, maxRetryDelay: TimeSpan.FromSeconds(30), errorNumbersToAdd: null);
+                        });
+                });
 
+            // 事件日志
             services.AddDbContext<IntegrationEventLogContext>(options =>
             {
-                options.UseSqlServer(configuration["ConnectionString"],
-                                     sqlServerOptionsAction: sqlOptions =>
-                                     {
-                                         sqlOptions.MigrationsAssembly(typeof(Startup).GetTypeInfo().Assembly.GetName().Name);
-                                         //Configuring Connection Resiliency: https://docs.microsoft.com/en-us/ef/core/miscellaneous/connection-resiliency 
-                                         sqlOptions.EnableRetryOnFailure(maxRetryCount: 15, maxRetryDelay: TimeSpan.FromSeconds(30), errorNumbersToAdd: null);
-                                     });
+                options.UseMySql(configuration["ConnectionString"],
+                    mySqlOptionsAction: sqlOptions =>
+                    {
+                        sqlOptions.MigrationsAssembly(typeof(Startup).GetTypeInfo().Assembly.GetName().Name);
+                        //Configuring Connection Resiliency: https://docs.microsoft.com/en-us/ef/core/miscellaneous/connection-resiliency 
+                        sqlOptions.EnableRetryOnFailure(maxRetryCount: 15, maxRetryDelay: TimeSpan.FromSeconds(30), errorNumbersToAdd: null);
+                    });
             });
 
             return services;
         }
 
-        public static IServiceCollection AddCustomOptions(this IServiceCollection services, IConfiguration configuration)
+        /// <summary>
+        /// 拓展方法 选项配置
+        /// </summary>
+        /// <param name="services"></param>
+        /// <param name="configuration"></param>
+        /// <returns></returns>
+        public static IServiceCollection AddCustomOptions(this IServiceCollection services,
+            IConfiguration configuration)
         {
+            // 参数选项配置
             services.Configure<CatalogSettings>(configuration);
+
+            // 统一模型验证配置
             services.Configure<ApiBehaviorOptions>(options =>
             {
                 options.InvalidModelStateResponseFactory = context =>
@@ -244,7 +297,7 @@ namespace Microsoft.eShopOnContainers.Services.Catalog.API
 
                     return new BadRequestObjectResult(problemDetails)
                     {
-                        ContentTypes = { "application/problem+json", "application/problem+xml" }
+                        ContentTypes = {"application/problem+json", "application/problem+xml"}
                     };
                 };
             });
@@ -266,10 +319,16 @@ namespace Microsoft.eShopOnContainers.Services.Catalog.API
             });
 
             return services;
-
         }
 
-        public static IServiceCollection AddIntegrationServices(this IServiceCollection services, IConfiguration configuration)
+        /// <summary>
+        /// 拓展服务 添加集成服务，Azure RabbitMQ
+        /// </summary>
+        /// <param name="services"></param>
+        /// <param name="configuration"></param>
+        /// <returns></returns>
+        public static IServiceCollection AddIntegrationServices(this IServiceCollection services,
+            IConfiguration configuration)
         {
             services.AddTransient<Func<DbConnection, IIntegrationEventLogService>>(
                 sp => (DbConnection c) => new IntegrationEventLogService(c));
@@ -324,6 +383,12 @@ namespace Microsoft.eShopOnContainers.Services.Catalog.API
             return services;
         }
 
+        /// <summary>
+        /// 拓展服务 事件总线
+        /// </summary>
+        /// <param name="services"></param>
+        /// <param name="configuration"></param>
+        /// <returns></returns>
         public static IServiceCollection AddEventBus(this IServiceCollection services, IConfiguration configuration)
         {
             var subscriptionClientName = configuration["SubscriptionClientName"];
@@ -340,7 +405,6 @@ namespace Microsoft.eShopOnContainers.Services.Catalog.API
                     return new EventBusServiceBus(serviceBusPersisterConnection, logger,
                         eventBusSubcriptionsManager, subscriptionClientName, iLifetimeScope);
                 });
-
             }
             else
             {
@@ -357,7 +421,8 @@ namespace Microsoft.eShopOnContainers.Services.Catalog.API
                         retryCount = int.Parse(configuration["EventBusRetryCount"]);
                     }
 
-                    return new EventBusRabbitMQ(rabbitMQPersistentConnection, logger, iLifetimeScope, eventBusSubcriptionsManager, subscriptionClientName, retryCount);
+                    return new EventBusRabbitMQ(rabbitMQPersistentConnection, logger, iLifetimeScope,
+                        eventBusSubcriptionsManager, subscriptionClientName, retryCount);
                 });
             }
 

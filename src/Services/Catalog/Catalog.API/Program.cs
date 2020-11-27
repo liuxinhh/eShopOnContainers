@@ -71,20 +71,21 @@ namespace Microsoft.eShopOnContainers.Services.Catalog.API
                 .ConfigureKestrel(options =>
                 {
                     var ports = GetDefinedPorts(configuration);
-                    options.Listen(IPAddress.Any, ports.httpPort, listenOptions =>
-                    {
-                        listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
-                    });
-                    options.Listen(IPAddress.Any, ports.grpcPort, listenOptions =>
-                    {
-                        listenOptions.Protocols = HttpProtocols.Http2;
-                    });
+                    // options.Listen(IPAddress.Any, ports.httpPort, listenOptions =>
+                    // {
+                    //     listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
+                    // });
+                    // options.Listen(IPAddress.Any, ports.grpcPort, listenOptions =>
+                    // {
+                    //     listenOptions.Protocols = HttpProtocols.Http2;
+                    // });
 
                 })
                 .UseStartup<Startup>()
                 .UseContentRoot(Directory.GetCurrentDirectory())
                 .UseWebRoot("Pics")
                 .UseSerilog()
+                .UseUrls("http://*:55101/")
                 .Build();
 
         private static Serilog.ILogger CreateSerilogLogger(IConfiguration configuration)

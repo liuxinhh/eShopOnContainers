@@ -252,16 +252,10 @@
             hcBuilder.AddCheck("self", () => HealthCheckResult.Healthy());
 
             hcBuilder
-                .AddSqlServer(
+                .AddMySql(
                     configuration["ConnectionString"],
                     name: "OrderingDB-check",
                     tags: new string[] { "orderingdb" });
-
-            //hcBuilder
-            //    .AddSqlite(
-            //        configuration["ConnectionString"],
-            //        name: "OrderingDB-check",
-            //        tags: new string[] {"orderingdb"});
 
             if (configuration.GetValue<bool>("AzureServiceBusEnabled"))
             {
@@ -295,10 +289,10 @@
         {
             services
                 //.AddEntityFrameworkSqlite()
-                .AddEntityFrameworkSqlServer()
+                .AddEntityFrameworkMySql()
                 .AddDbContext<OrderingContext>(options =>
                     {
-                        options.UseSqlServer(configuration["ConnectionString"],
+                        options.UseMySql(configuration["ConnectionString"],
                             sqlOptions =>
                             {
                                 sqlOptions.MigrationsAssembly(typeof(Startup).GetTypeInfo().Assembly.GetName().Name);
@@ -311,7 +305,7 @@
 
             services.AddDbContext<IntegrationEventLogContext>(options =>
             {
-                options.UseSqlServer(configuration["ConnectionString"],
+                options.UseMySql(configuration["ConnectionString"],
                      sqlOptions =>
                     {
                         sqlOptions.MigrationsAssembly(typeof(Startup).GetTypeInfo().Assembly.GetName().Name);

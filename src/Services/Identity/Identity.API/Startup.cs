@@ -44,12 +44,12 @@ namespace Microsoft.eShopOnContainers.Services.Identity.API
             // 添加 ApplicationDbContext 上下问
             services.AddDbContext<ApplicationDbContext>(options =>
                     // 数据库地址
-                    options.UseSqlite(Configuration["ConnectionString"],sqlOptions =>
+                    options.UseMySql(Configuration["ConnectionString"],sqlOptions =>
                     {
                         // 迁移的应用
                         sqlOptions.MigrationsAssembly(typeof(Startup).GetTypeInfo().Assembly.GetName().Name);
                         // 失败规则
-                        //sqlOptions.EnableRetryOnFailure(maxRetryCount: 15, maxRetryDelay: TimeSpan.FromSeconds(30), errorNumbersToAdd: null);
+                        sqlOptions.EnableRetryOnFailure(maxRetryCount: 15, maxRetryDelay: TimeSpan.FromSeconds(30), null!);
                     }));
 
             // 添加用户角色配置
@@ -88,7 +88,7 @@ namespace Microsoft.eShopOnContainers.Services.Identity.API
 
             services.AddHealthChecks()
                 .AddCheck("self", () => HealthCheckResult.Healthy())
-                .AddSqlite(Configuration["ConnectionString"],
+                .AddMySql(Configuration["ConnectionString"],
                     name: "IdentityDB-check",
                     tags: new string[] { "IdentityDB" });
 
@@ -114,22 +114,22 @@ namespace Microsoft.eShopOnContainers.Services.Identity.API
             // ConfigurationStoreDbContext 上下文
             .AddConfigurationStore(options =>
             {
-                options.ConfigureDbContext = builder => builder.UseSqlite(connectionString,
+                options.ConfigureDbContext = builder => builder.UseMySql(connectionString,
                     sqlOptions =>
                     {
                         sqlOptions.MigrationsAssembly(migrationsAssembly);
-                        //sqlOptions.EnableRetryOnFailure(maxRetryCount: 15, maxRetryDelay: TimeSpan.FromSeconds(30), errorNumbersToAdd: null);
+                        sqlOptions.EnableRetryOnFailure(maxRetryCount: 15, maxRetryDelay: TimeSpan.FromSeconds(30), null!);
                     });
             })
             // 持久化授权数据
             // PersistedGrantDbContext 上下文
             .AddOperationalStore(options =>
             {
-                options.ConfigureDbContext = builder => builder.UseSqlite(connectionString,
+                options.ConfigureDbContext = builder => builder.UseMySql(connectionString,
                     sqlOptions =>
                     {
                         sqlOptions.MigrationsAssembly(migrationsAssembly);
-                        //sqlOptions.EnableRetryOnFailure(maxRetryCount: 15, maxRetryDelay: TimeSpan.FromSeconds(30), errorNumbersToAdd: null);
+                        sqlOptions.EnableRetryOnFailure(maxRetryCount: 15, maxRetryDelay: TimeSpan.FromSeconds(30), null!);
                     });
             })
             // 配置数据服务，获取请求上下文

@@ -28,7 +28,7 @@ namespace Ordering.API.Infrastructure.Factories
 
             var optionsBuilder = new DbContextOptionsBuilder<OrderingContext>();
 
-            optionsBuilder.UseSqlServer(config["ConnectionString"], sqlServerOptionsAction: o => o.MigrationsAssembly("Ordering.API"));
+            optionsBuilder.UseMySql(config["ConnectionString"], mySqlOptionsAction: o => o.MigrationsAssembly("Ordering.API"));
 
             return new OrderingContext(optionsBuilder.Options);
         }

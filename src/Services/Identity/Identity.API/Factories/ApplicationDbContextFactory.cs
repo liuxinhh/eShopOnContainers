@@ -18,7 +18,7 @@ namespace Identity.API.Factories
 
             var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
 
-            optionsBuilder.UseSqlServer(config["ConnectionString"], sqlServerOptionsAction: o => o.MigrationsAssembly("Identity.API"));
+            optionsBuilder.UseMySql(config["ConnectionString"], mySqlOptionsAction: o => o.MigrationsAssembly("Identity.API"));
 
             return new ApplicationDbContext(optionsBuilder.Options);
         }

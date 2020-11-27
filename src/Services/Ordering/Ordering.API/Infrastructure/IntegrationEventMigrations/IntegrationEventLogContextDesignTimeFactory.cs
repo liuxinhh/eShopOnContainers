@@ -10,7 +10,7 @@ namespace Catalog.API.Infrastructure.IntegrationEventMigrations
         {
             var optionsBuilder = new DbContextOptionsBuilder<IntegrationEventLogContext>();
 
-            optionsBuilder.UseSqlServer(".", options => options.MigrationsAssembly(GetType().Assembly.GetName().Name));
+            optionsBuilder.UseMySql("server=47.116.64.19;port=3306;user=root;password=woaini520.;database=Microsoft.eShopOnContainers.Services.OrderingDb", options => options.MigrationsAssembly(GetType().Assembly.GetName().Name));
 
             return new IntegrationEventLogContext(optionsBuilder.Options);
         }
